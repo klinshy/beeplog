@@ -84,7 +84,6 @@ export function CombinedExample() {
 
         async function pollUpdates() {
             const events = await api.receiveRoomEvents('m.room.message', {
-                roomIds: [targetRoomId],
                 since: lastEventId,
             });
             if (events.length) {
@@ -96,7 +95,7 @@ export function CombinedExample() {
         pollUpdates();
         timer = setInterval(pollUpdates, 3000);
         return () => clearInterval(timer);
-    }, [api, targetRoomId]);
+    }, [api]);
 
     return (
         <div>
