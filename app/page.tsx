@@ -64,11 +64,18 @@ export function CombinedExample() {
     async function handleSend(e: React.FormEvent) {
         e.preventDefault();
         if (!input.trim()) return;
-        await api.sendRoomEvent('m.room.message', {
+
+        const content = {
             msgtype: 'm.text',
             body: input,
-        });
-        setInput('');
+        };
+
+        try {
+            await api.sendRoomEvent('m.room.message', content, { roomId: "!rxaVPzpiKkuORgvUUm:beeper.com" });
+            setInput('');
+        } catch (error) {
+            console.error("Failed to forward message:", error);
+        }
     }
 
     useEffect(() => {
@@ -77,6 +84,7 @@ export function CombinedExample() {
 
         async function pollUpdates() {
             const events = await api.receiveRoomEvents('m.room.message', {
+                roomIds: [targetRoomId],
                 since: lastEventId,
             });
             if (events.length) {
@@ -88,7 +96,7 @@ export function CombinedExample() {
         pollUpdates();
         timer = setInterval(pollUpdates, 3000);
         return () => clearInterval(timer);
-    }, [api]);
+    }, [api, targetRoomId]);
 
     return (
         <div>
