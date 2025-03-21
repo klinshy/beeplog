@@ -1,10 +1,14 @@
 "use client"
 
 import { EventDirection, WidgetEventCapability } from '@beeper/matrix-widget-api';
+import { useWidgetApi } from '@beeper/matrix-widget-toolkit-react';
 import Option from "@/app/components/option";
 import { MuiCapabilitiesGuard } from "@beeper/matrix-widget-toolkit-mui";
+import { useState, useEffect } from 'react';
+
 
 export default function Home() {
+    const widgetApi = useWidgetApi();
     return (
         <>
             <MuiCapabilitiesGuard
@@ -52,3 +56,54 @@ export default function Home() {
         </>
     );
 };
+export function CombinedExample() {
+    const [items, setItems] = useState<any[]>([]);
+    const [input, setInput] = useState('');
+    const api = useWidgetApi();
+
+    async function handleSend(e: React.FormEvent) {
+        e.preventDefault();
+        if (!input.trim()) return;
+        await api.sendRoomEvent('m.room.message', {
+            msgtype: 'm.text',
+            body: input,
+        });
+        setInput('');
+    }
+
+    useEffect(() => {
+        let timer: ReturnType<typeof setInterval> | undefined;
+        let lastEventId: string | undefined;
+
+        async function pollUpdates() {
+            const events = await api.receiveRoomEvents('m.room.message', {
+                since: lastEventId,
+            });
+            if (events.length) {
+                lastEventId = events[events.length - 1].event_id;
+                setItems(prev => [...prev, ...events]);
+            }
+        }
+
+        pollUpdates();
+        timer = setInterval(pollUpdates, 3000);
+        return () => clearInterval(timer);
+    }, [api]);
+
+    return (
+        <div>
+            <form onSubmit={handleSend}>
+                <input
+                    value={input}
+                    onChange={e => setInput(e.target.value)}
+                />
+                <button type="submit">Send</button>
+            </form>
+            <ul>
+                {items.map(evt => (
+                    <li key={evt.event_id}>{evt.content.body}</li>
+                ))}
+            </ul>
+        </div>
+    );
+}
