@@ -58,33 +58,42 @@ export default function Home() {
     );
 };
  
+ 
 function MessageListener() {
     const widgetApi = useWidgetApi();
-    const [items, setItems] = useState<string[]>(() => {
-        const stored = localStorage.getItem("messages");
-        return stored ? JSON.parse(stored) : [];
-    });
+    const [items, setItems] = useState<any[]>([]);
     const [input, setInput] = useState('');
 
-    function addMessage(message: string) {
-        setItems(prev => {
-            // Only add the message if it doesn't already exist.
-            if (prev.includes(message)) return prev;
-            const newMessages = [...prev, message];
-            localStorage.setItem("messages", JSON.stringify(newMessages));
-            return newMessages;
-        });
+    const historyRoomID = "!DRyZTkutnbDdVMbsgR:beeper.com";
+
+    function sendMessage(message: string) {
+        widgetApi.sendRoomEvent(
+            'm.room.message',
+            {
+                msgtype: 'm.text',
+                body: message,
+                roomIds: historyRoomID,
+            }
+        );
     }
 
     function sendStartMessage() {
-        addMessage("Start To listen Room ...");
+        widgetApi.sendRoomEvent(
+            'm.room.message',
+            {
+                msgtype: 'm.text',
+                body: "Start To listen Room ...",
+                roomIds: historyRoomID,
+            }
+        );
     }
 
     useEffect(() => {
+        sendStartMessage();
+
+        /* The following polling code is disabled for testing purposes
         let timer: ReturnType<typeof setInterval> | undefined;
         let lastEventId: string | undefined;
-
-        sendStartMessage();
 
         async function pollUpdates() {
             const events = await widgetApi.receiveRoomEvents('m.room.message', {
@@ -94,28 +103,24 @@ function MessageListener() {
             events.forEach(event => {
                 const { sender, room_id, content } = event as RoomEvent & { content: { body: string } };
                 const { body } = content;
-                const message = `${sender} - ${room_id} : ${body}`;
-                addMessage(message);
+                sendMessage(` ${sender} - ${room_id} : ${body}`);
             });
 
             if (events.length) {
                 lastEventId = events[events.length - 1].event_id;
+                setItems(prev => [...prev, ...events]);
             }
         }
 
         pollUpdates();
         timer = setInterval(pollUpdates, 3000);
         return () => clearInterval(timer);
+        */
     }, [widgetApi]);
 
     return (
         <>
             <h1>Message Listener</h1>
-            <ul>
-                {items.map((msg, index) => (
-                    <li key={index}>{msg}</li>
-                ))}
-            </ul>
         </>
     );
 }
